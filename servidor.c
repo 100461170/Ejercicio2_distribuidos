@@ -2,7 +2,7 @@
 // Created by linux-lex on 29/02/24.
 //
 #include "servidor.h"
-#include "structures.h"
+#include "communications.h"
 #include <mqueue.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -19,11 +19,10 @@
 pthread_mutex_t sync_mutex;
 bool sync_copied = false;
 pthread_cond_t sync_cond;
-// cola de servidor
-mqd_t queue_servidor;
+// sockets del servidor
+int sd, sc;
 // mutex para hacer peticiones concurrentes atómicas
 pthread_mutex_t almacen_mutex;
-
 // Almacen dinámico de tuplas
 struct tupla* almacen = NULL;
 // numero de elementos en el array
@@ -43,12 +42,7 @@ int main (){
     }
     // Inicializamos peticion y variables
     struct peticion p;
-    unsigned int prio = 0;
     int contador = 0;
-    // Inicializamos los atributos de la cola
-    struct mq_attr attr_servidor;
-    attr_servidor.mq_maxmsg = 10;
-    attr_servidor.mq_msgsize = sizeof(struct peticion);
     // Inicializamos los hilos
     pthread_attr_t attr;
     pthread_t thid[MAX];
@@ -58,18 +52,29 @@ int main (){
     pthread_mutex_init(&sync_mutex, NULL);
     pthread_mutex_init(&almacen_mutex, NULL);
     pthread_cond_init(&sync_cond, NULL);
-    // Abrimos la cola del servidor para lectura
-    queue_servidor = mq_open("/SERVIDOR", O_CREAT | O_RDONLY, 0700, &attr_servidor);
-    if (queue_servidor == -1){
-        perror("Error en servidor. Mq_open queue servidor");
-        return -1;
+    // Abrimos socket servidor
+    sd = serverSocket(4200, SOCK_STREAM);
+    if (sd < 0) {
+        perror("SERVER: Error en serverSocket");
+        return 0;
     }
+    // variable recibir mensaje
+    int ret;
     // Bucle infinito
     while (1) {
-        if (mq_receive(queue_servidor, (char *)&p, sizeof(struct peticion), &prio) < 0) {
-            perror("Error en servidor. Mq_recv");
-            return -1;
+        // aceptar cliente
+        sc = serverAccept(sd) ;
+        if (sc < 0) {
+            perror("Error en serverAccept");
+            continue ;
         }
+        // recibir mensaje
+        ret = recvMessage(sc, (char *) &p, sizeof(struct peticion));
+        if (ret < 0) {
+            perror("Error en recepcion");
+            return -1 ;
+        }
+        // crear hilo
         if (pthread_create(&thid[contador], &attr, tratar_peticion, (struct perticion *) &p) != 0) {
             perror("Error en servidor. Pthread_create");
             return -1;
@@ -84,14 +89,12 @@ int main (){
         // Contador para los hilos
         contador++;
     }
+    
     return 0;
 }
 
 void * tratar_peticion (void* pp){
     struct peticion * p = pp;
-    struct mq_attr attr_cliente;
-    attr_cliente.mq_maxmsg = 10;
-    attr_cliente.mq_msgsize = sizeof(struct respuesta);
     // Creamos la peticion local y la respuesta
     struct peticion p_local;
     struct respuesta resp;
@@ -123,28 +126,13 @@ void * tratar_peticion (void* pp){
         resp.status = s_exist(p_local.key);
         break;
     }
-    // Abrimos la cola del cliente
-    mqd_t queue_cliente = mq_open(p_local.q_name, O_CREAT | O_WRONLY, 0700, &attr_cliente);
-    if (queue_cliente == -1)
-    {
-        perror("Error en servidor. Mq_open queue cliente");
-        mq_close(queue_servidor);
-        mq_unlink("/SERVIDOR");
+    // devolvemos la respuesta
+    int ret = sendMessage(sc, (char *)&resp, sizeof(struct respuesta));
+    if (ret == -1) {
+        perror("Error en envio");
+        exit(-1);
     }
-    else
-    {
-        // Mandamos el mensaje al cliente
-        if (mq_send(queue_cliente, (char *)&resp, sizeof(struct respuesta), 0) < 0)
-        {
-            perror("Error en servidor. Mq_send");
-            mq_close(queue_servidor);
-            mq_unlink("/SERVIDOR");
-            mq_close(queue_cliente);
-            mq_unlink(p_local.q_name);
-        }
-        mq_close(queue_cliente);
-        mq_unlink(p_local.q_name);
-    }
+    closeSocket(sc);
     return NULL;
 }
 
@@ -282,8 +270,7 @@ void close_server(){
     write_back();
     free(almacen);
     almacen = NULL;
-    mq_close(queue_servidor);
-    mq_unlink("/SERVIDOR");
+    closeSocket(sd);
     exit(0);
 }
 

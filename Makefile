@@ -8,13 +8,13 @@ library = libclaves.so
 all: $(targets) 
 
 # este ejecutable es el servidor
-servidor: servidor.o
+servidor: servidor.o communications.o
 	@echo "Compiling $@ ..."
-	$(CC)  $< -o $@ 
+	$(CC)  $^ -o $@ 
 
 # enlazar libreria dinamica con objeto clientes
 # este ejecutable es un cliente concurrente
-cliente: cliente.o $(library) 
+cliente: cliente.o $(library) communications.o
 	@echo "Compiling $@ with $^"
 	$(CC) -o $@ $< -L. -lclaves -Wl,-rpath=.
 
@@ -29,7 +29,7 @@ claves.o: claves.c
 	$(CC) -c -Wall -Werror -fPIC $< -o $@
 
 #compilar .o en una libreria dinamica .so
-$(library): claves.o
+$(library): claves.o communications.o
 	@echo "Creating dynamic library file from: $< ..."
 	$(CC) -shared -o $@ $^
 # compilar los archivos c a objetos

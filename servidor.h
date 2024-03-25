@@ -1,10 +1,10 @@
 //
 // Created by linux-lex on 29/02/24.
 //
-#include "structures.h"
+#include "communications.h"
 
-#ifndef EJERCICIO1_DISTRIBUIDOS_SERVIDOR_H
-#define EJERCICIO1_DISTRIBUIDOS_SERVIDOR_H
+#ifndef EJERCICIO2_DISTRIBUIDOS_SERVIDOR_H
+#define EJERCICIO2_DISTRIBUIDOS_SERVIDOR_H
 
 void * tratar_peticion(void *p);
 int s_init();
@@ -17,4 +17,4 @@ int load();
 int write_back();
 void close_server();
 
-#endif //EJERCICIO1_DISTRIBUIDOS_SERVIDOR_H
+#endif //EJERCICIO2_DISTRIBUIDOS_SERVIDOR_H

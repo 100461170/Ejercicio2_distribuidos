@@ -45,12 +45,12 @@ int main (int argc, char *argv[]){
         return -1;
     }
     // Inicializamos peticion y variables
-    struct peticion p;
+    // struct peticion p;
     int contador = 0;
     // Inicializamos los hilos
     pthread_attr_t attr;
     pthread_t thid[MAX];
-    pthread_attr_init(&attr) ;
+    pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     // Inicializamos mutex y variable condicion
     pthread_mutex_init(&sync_mutex, NULL);
@@ -75,22 +75,23 @@ int main (int argc, char *argv[]){
     }
     // variable recibir mensaje
     int ret;
+    char num_op[MAX];
     // Bucle infinito
     while (1) {
         // aceptar cliente
-        sc = serverAccept(sd) ;
+        sc = serverAccept(sd);
         if (sc < 0) {
             perror("Error en serverAccept");
             continue ;
         }
         // recibir mensaje
-        ret = recvMessage(sc, (char *) &p, sizeof(struct peticion));
+        ret = recvMessage(sc, num_op, sizeof(char));
         if (ret < 0) {
             perror("Error en recepcion");
             return -1 ;
         }
         // crear hilo
-        if (pthread_create(&thid[contador], &attr, tratar_peticion, (struct perticion *) &p) != 0) {
+        if (pthread_create(&thid[contador], &attr, tratar_peticion, &num_op) != 0) {
             perror("Error en servidor. Pthread_create");
             return -1;
         }
@@ -109,44 +110,52 @@ int main (int argc, char *argv[]){
 }
 
 void * tratar_peticion (void* pp){
-    struct peticion * p = pp;
-    // Creamos la peticion local y la respuesta
-    struct peticion p_local;
-    struct respuesta resp;
+    // struct peticion * p = pp;
+    // // Creamos la peticion local y la respuesta
+    // struct peticion p_local;
+    // struct respuesta resp;
     // Adquirimos el mutex para copiar la peticion pasada por parametro
+    
     pthread_mutex_lock(&sync_mutex);
-    p_local = *p;
+    // p_local = *p;
+    char *ending_char;
+    int num_op = strtol(pp, &ending_char, 10);
+    int resp;
     sync_copied = true;
     pthread_cond_signal(&sync_cond);
     pthread_mutex_unlock(&sync_mutex);
     
     // En funcion de la operacion especificada en la peticion hacemos una u otra operacion
-    switch (p_local.op){
+    switch (num_op){
     case 0:
-        resp.status = s_init();
+        resp = s_init();
         break;
     case 1:
-        resp.status = s_set_value(p_local.key, p_local.valor1, p_local.valor2_N, p_local.valor2_value);
+        resp = s_set_value();
         break;
     case 2:
-        resp.status = s_get_value(p_local.key, resp.valor1, &resp.N_value2, resp.valor2_value);
+        resp = s_get_value();
         break;
     case 3:
-        resp.status = s_modify_value(p_local.key, p_local.valor1, p_local.valor2_N, p_local.valor2_value);
+        resp = s_modify_value();
         break;
     case 4:
-        resp.status = s_delete_key(p_local.key);
+        resp = s_delete_key();
         break;
     case 5:
-        resp.status = s_exist(p_local.key);
+        resp = s_exist();
         break;
     }
-    // devolvemos la respuesta
-    int ret = sendMessage(sc, (char *)&resp, sizeof(struct respuesta));
-    if (ret == -1) {
-        perror("Error en envio");
-        exit(-1);
-    }
+    // devolvemos la respuesta solo si no es get value
+    char resp_str[MAX];
+    sprintf(resp_str, "%d", resp);
+    if (resp != 2){
+        int ret = sendMessage(sc, resp_str, sizeof(char) * MAX);
+        if (ret == -1) {
+            perror("Error en envio");
+            exit(-1);
+        }
+    }  
     closeSocket(sc);
     return NULL;
 }
@@ -164,9 +173,53 @@ int s_init() {
     return 0;
 }
 
-int s_set_value(int key, char *valor1, int valor2_N, double *valor2_value) {
+int s_set_value() {
     // bloquear el mutex
     pthread_mutex_lock(&almacen_mutex);
+    // conseguir elementos
+    int ret;
+    char c_key[MAX];
+    char valor1[MAX];
+    char c_valor2_N[MAX];
+    char c_valor2_value[MAX_VECTOR];
+    // recibir key
+    ret = recvMessage(sc, c_key, sizeof(char)*MAX);
+    if (ret == -1) {
+        perror("Error en recibo");
+        return -1;
+    }
+   
+    // recibir value1
+    ret = recvMessage(sc, valor1, sizeof(char) * MAX);
+    if (ret == -1) {
+        perror("Error en recibo");
+        return -1;
+    }
+    // recibir N_value2
+    ret = recvMessage(sc, c_valor2_N, sizeof(char)*MAX);
+    if (ret == -1) {
+        perror("Error en recibo");
+        pthread_mutex_unlock(&almacen_mutex);
+        return -1;
+    }
+    // convertir tipos
+    // key
+    char *ending_char;
+    int key = strtol(c_key, &ending_char, 10);
+    // N_value2
+    int valor2_N = strtol(c_valor2_N, &ending_char, 10);
+    // recibir V_value2
+    double valor2_value[MAX_VECTOR];
+    for (int i = 0; i < valor2_N; i++){
+        ret = recvMessage(sc, c_valor2_value, sizeof(char) * MAX);
+        if (ret == -1){
+            perror("Error en recibo");
+            pthread_mutex_unlock(&almacen_mutex);
+            return -1;
+        }
+        valor2_value[i] = strtold(c_valor2_value, &ending_char);
+    }
+    
     // comprobar la existencia de key
     // iterar por el almacen
     for (int i = 0; i < n_elementos; i++){
@@ -201,28 +254,130 @@ int s_set_value(int key, char *valor1, int valor2_N, double *valor2_value) {
     return 0;
 }
 
-int s_get_value(int key, char *valor1, int *valor2_N, double *valor2_value){
+int s_get_value(){
     // iterar por el almacen
     pthread_mutex_lock(&almacen_mutex);
+    
+    // conseguir elementos
+    int ret;
+    char c_key[MAX];
+    char valor1[MAX];
+    int valor2_N;
+    double valor2_value[MAX_VECTOR];
+    // recibir key
+    ret = recvMessage(sc, c_key, sizeof(char)*MAX);
+    if (ret == -1) {
+        perror("Error en recibo");
+        pthread_mutex_unlock(&almacen_mutex);
+        return -1;
+    }
+    // convertir tipos
+    // key
+    char *ending_char;
+    int key = strtol(c_key, &ending_char, 10);
+    
     int existe = -1;
     for (int i = 0; i < n_elementos; i++){
         if (almacen[i].clave == key){
             existe = 0;
             // copiar informacion
             strcpy(valor1, almacen[i].valor1);
-                *valor2_N = almacen[i].valor2_N;
+                valor2_N = almacen[i].valor2_N;
             for (int j = 0; j<almacen[i].valor2_N; j++){
                 valor2_value[j] = almacen[i].valor2_value[j];
             }
         }
     }
+    char resp_str[MAX];
+    sprintf(resp_str, "%d", existe);
+    ret = sendMessage(sc, resp_str, sizeof(char) * MAX);
+    if (ret == -1) {
+        perror("Error en envio");
+    }
+    if (existe != -1){
+        // enviar elementos
+        // mandar value1
+        ret = sendMessage(sc, valor1, sizeof(char)*MAX);
+        if (ret == -1) {
+            pthread_mutex_unlock(&almacen_mutex);
+            perror("Error en envio");
+            return -1;
+        }
+        // mandar N_value2
+        char c_N_value2[MAX];
+        sprintf(c_N_value2, "%d", valor2_N);
+        ret = sendMessage(sc, c_N_value2, sizeof(char)*MAX);
+        if (ret == -1) {
+            perror("Error en envio");
+            pthread_mutex_unlock(&almacen_mutex);
+            return -1;
+        }
+        // mandar V_value2
+        for (int i = 0; i< valor2_N; i++){
+            char vector_string[MAX];
+            snprintf(vector_string, MAX, "%f", valor2_value[i]);
+            ret = sendMessage(sc, vector_string, sizeof(char) * MAX);
+            if (ret == -1){
+                perror("Error en envio");
+                // pthread_mutex_unlock(&almacen_mutex);
+                return -1;
+            }
+        }
+    }
+    
+
     pthread_mutex_unlock(&almacen_mutex);
     // devolver valor
     return existe;
 }
 
-int s_modify_value(int key, char *valor1, int valor2_N, double *valor2_value) {
+int s_modify_value() {
     pthread_mutex_lock(&almacen_mutex);
+    // conseguir elementos
+    int ret;
+    char c_key[MAX];
+    char valor1[MAX];
+    char c_valor2_N[MAX];
+    char c_valor2_value[MAX_VECTOR];
+    // recibir key
+    ret = recvMessage(sc, c_key, sizeof(char)*MAX);
+    if (ret == -1) {
+        perror("Error en recibo");
+        pthread_mutex_unlock(&almacen_mutex);
+        return -1;
+    }
+   
+    // recibir value1
+    ret = recvMessage(sc, valor1, sizeof(char) * MAX);
+    if (ret == -1) {
+        perror("Error en recibo");
+        pthread_mutex_unlock(&almacen_mutex);
+        return -1;
+    }
+    // recibir N_value2
+    ret = recvMessage(sc, c_valor2_N, sizeof(char));
+    if (ret == -1) {
+        perror("Error en recibo");
+        pthread_mutex_unlock(&almacen_mutex);
+        return -1;
+    }
+    // convertir tipos
+    // key
+    char *ending_char;
+    int key = strtol(c_key, &ending_char, 10);
+    // N_value2
+    int valor2_N = strtol(c_valor2_N, &ending_char, 10);
+    // recibir V_value2
+    double valor2_value[MAX_VECTOR];
+    for (int i = 0; i < valor2_N; i++){
+        ret = recvMessage(sc, c_valor2_value, sizeof(char) * MAX);
+        if (ret == -1){
+            perror("Error en recibo");
+            pthread_mutex_unlock(&almacen_mutex);
+            return -1;
+        }
+        valor2_value[i] = strtold(c_valor2_value, &ending_char);
+    }
     // iterar por almacen
     int existe = -1;
     for (int i = 0; i < n_elementos; i++){
@@ -243,8 +398,22 @@ int s_modify_value(int key, char *valor1, int valor2_N, double *valor2_value) {
     return existe;
 }
 
-int s_delete_key(int key) {
+int s_delete_key() {
     pthread_mutex_lock(&almacen_mutex);
+    // conseguir elementos
+    int ret;
+    char c_key[MAX];
+    // recibir key
+    ret = recvMessage(sc, c_key, sizeof(char)*MAX);
+    if (ret == -1) {
+        perror("Error en recibo");
+        pthread_mutex_unlock(&almacen_mutex);
+        return -1;
+    }
+    // convertir tipos
+    // key
+    char *ending_char;
+    int key = strtol(c_key, &ending_char, 10);
     int existe = -1;
     // iterar por el almacen
     for (int i = 0; i < n_elementos; i++){
@@ -261,12 +430,27 @@ int s_delete_key(int key) {
             n_elementos--;
         }
     }
+
     pthread_mutex_unlock(&almacen_mutex);
     return existe;
 }
 
-int s_exist(int key) {
+int s_exist() {
     pthread_mutex_lock(&almacen_mutex);
+    // conseguir elementos
+    int ret;
+    char c_key[MAX];
+    // recibir key
+    ret = recvMessage(sc, c_key, sizeof(char)*MAX);
+    if (ret == -1) {
+        perror("Error en recibo");
+        pthread_mutex_unlock(&almacen_mutex);
+        return -1;
+    }
+    // convertir tipos
+    // key
+    char *ending_char;
+    int key = strtol(c_key, &ending_char, 10);
     int existe = 0;
     // iterar por el almacen
     for (int i = 0; i<n_elementos; i++){

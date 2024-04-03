@@ -17,7 +17,11 @@ int init(){
     char client_name[MAX];
     int sd, ret;
     // abrir socket
-    sd = clientSocket("localhost", 4200);
+    char *ip_tuplas, *port_tuplas, *ending_char;
+    ip_tuplas = getenv("IP_TUPLAS");
+    port_tuplas = getenv("PORT_TUPLAS");
+    int port_number = strtol(port_tuplas, &ending_char, 10);
+    sd = clientSocket(ip_tuplas, port_number);
     if (sd < 0) {
         perror("Error en clientSocket");
         return -1;
@@ -60,7 +64,11 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
         return -1;
     }
     // abrir socket
-    sd = clientSocket("localhost", 4200);
+    char *ip_tuplas, *port_tuplas, *ending_char;
+    ip_tuplas = getenv("IP_TUPLAS");
+    port_tuplas = getenv("PORT_TUPLAS");
+    int port_number = strtol(port_tuplas, &ending_char, 10);
+    sd = clientSocket(ip_tuplas, port_number);
     if (sd < 0){
         perror("Error en clientSocket");
         return -1;
@@ -102,7 +110,11 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
     char client_name[MAX];
     int sd, ret;
     // abrir socket
-    sd = clientSocket("localhost", 4200);
+    char *ip_tuplas, *port_tuplas, *ending_char;
+    ip_tuplas = getenv("IP_TUPLAS");
+    port_tuplas = getenv("PORT_TUPLAS");
+    int port_number = strtol(port_tuplas, &ending_char, 10);
+    sd = clientSocket(ip_tuplas, port_number);
     if (sd < 0) {
         perror("Error en clientSocket");
         return -1;
@@ -152,7 +164,11 @@ int modify_value(int key, char *value1, int N_value2, double *V_value2){
         return -1;
     }
     // abrir socket
-    sd = clientSocket("localhost", 4200);
+    char *ip_tuplas, *port_tuplas, *ending_char;
+    ip_tuplas = getenv("IP_TUPLAS");
+    port_tuplas = getenv("PORT_TUPLAS");
+    int port_number = strtol(port_tuplas, &ending_char, 10);
+    sd = clientSocket(ip_tuplas, port_number);
     if (sd < 0) {
         perror("Error en clientSocket");
         return -1;
@@ -191,7 +207,11 @@ int delete_key(int key){
     int sd, ret;
     char client_name[MAX];
     // abrir socket
-    sd = clientSocket("localhost", 4200);
+    char *ip_tuplas, *port_tuplas, *ending_char;
+    ip_tuplas = getenv("IP_TUPLAS");
+    port_tuplas = getenv("PORT_TUPLAS");
+    int port_number = strtol(port_tuplas, &ending_char, 10);
+    sd = clientSocket(ip_tuplas, port_number);
     if (sd < 0) {
         perror("Error en clientSocket");
         return -1;

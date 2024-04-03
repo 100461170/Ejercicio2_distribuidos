@@ -30,7 +30,11 @@ int n_elementos = 0;
 // elmentos maximos del array
 int max_tuplas = 50;
 
-int main (){
+int main (int argc, char *argv[]){
+    if (argc < 2){
+        fprintf(stderr, "Error: se necesitan mas argumentos en linea de comandos\n");
+        return -1;
+    }
     // Inicializamos el almacén
     almacen = (struct tupla*)malloc(max_tuplas*sizeof(struct tupla));
     // signal para cerrar servidor
@@ -53,7 +57,18 @@ int main (){
     pthread_mutex_init(&almacen_mutex, NULL);
     pthread_cond_init(&sync_cond, NULL);
     // Abrimos socket servidor
-    sd = serverSocket(4200, SOCK_STREAM);
+    // convertir argumento a numero
+    char *ending_char;
+    int port_number = strtol(argv[1], &ending_char, 10);
+    if ('\0' != *ending_char){
+        fprintf(stderr, "Error: el argumento 1 debe ser un numero de puerto.\n");
+        return -1;
+    }
+    if (port_number < 1024 || port_number > 49151){
+        fprintf(stderr, "Error: el puerto tiene que estar en el rango 1024-49151.\n");
+        return -1;
+    }
+    sd = serverSocket(port_number, SOCK_STREAM);
     if (sd < 0) {
         perror("SERVER: Error en serverSocket");
         return 0;

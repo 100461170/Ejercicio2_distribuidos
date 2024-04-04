@@ -73,7 +73,7 @@ int main (int argc, char *argv[]){
         perror("SERVER: Error en serverSocket");
         return 0;
     }
-    // variable recibir mensaje
+    // variables recepcion mensajes
     int ret;
     char num_op[MAX];
     // Bucle infinito
@@ -110,6 +110,8 @@ int main (int argc, char *argv[]){
 }
 
 void * tratar_peticion (void* pp){
+    //TODO: tal vez se puede borrar este mutex porque solo es lectura
+    // TODO: resolver problema de concurrencia con clientes en background
     // Adquirimos el mutex para copiar la peticion pasada por parametro 
     pthread_mutex_lock(&sync_mutex);
     // p_local = *p;

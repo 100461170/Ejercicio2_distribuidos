@@ -18,6 +18,10 @@ int init(){
     char *ip_tuplas, *port_tuplas, *ending_char;
     ip_tuplas = getenv("IP_TUPLAS");
     port_tuplas = getenv("PORT_TUPLAS");
+    if (ip_tuplas == NULL || port_tuplas == NULL){
+        fprintf(stderr, "Variables de entorno no definidas.\n");
+        return -1;
+    }
     int port_number = strtol(port_tuplas, &ending_char, 10);
     sd = clientSocket(ip_tuplas, port_number);
     if (sd < 0) {
@@ -58,6 +62,10 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
     char *ip_tuplas, *port_tuplas, *ending_char;
     ip_tuplas = getenv("IP_TUPLAS");
     port_tuplas = getenv("PORT_TUPLAS");
+    if (ip_tuplas == NULL || port_tuplas == NULL){
+        fprintf(stderr, "Variables de entorno no definidas.\n");
+        return -1;
+    }
     int port_number = strtol(port_tuplas, &ending_char, 10);
     sd = clientSocket(ip_tuplas, port_number);
     if (sd < 0) {
@@ -126,6 +134,10 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
     char *ip_tuplas, *port_tuplas, *ending_char;
     ip_tuplas = getenv("IP_TUPLAS");
     port_tuplas = getenv("PORT_TUPLAS");
+    if (ip_tuplas == NULL || port_tuplas == NULL){
+        fprintf(stderr, "Variables de entorno no definidas.\n");
+        return -1;
+    }
     int port_number = strtol(port_tuplas, &ending_char, 10);
     sd = clientSocket(ip_tuplas, port_number);
     if (sd < 0) {
@@ -208,6 +220,10 @@ int modify_value(int key, char *value1, int N_value2, double *V_value2){
     char *ip_tuplas, *port_tuplas, *ending_char;
     ip_tuplas = getenv("IP_TUPLAS");
     port_tuplas = getenv("PORT_TUPLAS");
+    if (ip_tuplas == NULL || port_tuplas == NULL){
+        fprintf(stderr, "Variables de entorno no definidas.\n");
+        return -1;
+    }
     int port_number = strtol(port_tuplas, &ending_char, 10);
     sd = clientSocket(ip_tuplas, port_number);
     if (sd < 0) {
@@ -272,6 +288,10 @@ int delete_key(int key){
     char *ip_tuplas, *port_tuplas, *ending_char;
     ip_tuplas = getenv("IP_TUPLAS");
     port_tuplas = getenv("PORT_TUPLAS");
+    if (ip_tuplas == NULL || port_tuplas == NULL){
+        fprintf(stderr, "Variables de entorno no definidas.\n");
+        return -1;
+    }
     int port_number = strtol(port_tuplas, &ending_char, 10);
     sd = clientSocket(ip_tuplas, port_number);
     if (sd < 0) {
@@ -312,6 +332,10 @@ int exist(int key){
     char *ip_tuplas, *port_tuplas, *ending_char;
     ip_tuplas = getenv("IP_TUPLAS");
     port_tuplas = getenv("PORT_TUPLAS");
+    if (ip_tuplas == NULL || port_tuplas == NULL){
+        fprintf(stderr, "Variables de entorno no definidas.\n");
+        return -1;
+    }
     int port_number = strtol(port_tuplas, &ending_char, 10);
     sd = clientSocket(ip_tuplas, port_number);
     if (sd < 0) {

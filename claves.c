@@ -43,8 +43,6 @@ int init(){
 }
 
 int set_value(int key, char *value1, int N_value2, double *V_value2){
-    // struct peticion p;
-    // struct respuesta r;
     char resp[MAX];
     int sd, ret;
     // comprobar errores
@@ -66,19 +64,6 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
         perror("Error en clientSocket");
         return -1;
     }
-    // // Rellenar la peticion
-    // sprintf(client_name, "%s%d", "/CLIENTE_", getpid());
-
-    // memset(&p, 0, sizeof(struct peticion));
-    // p.op = 1;
-    // strcpy(p.q_name, client_name);
-    // p.key = key;
-    // strcpy(p.valor1, value1);
-    // p.valor2_N = N_value2;
-    // copiar vector
-    // for (int i = 0; i < N_value2; i++) {
-    //     p.valor2_value[i] = V_value2[i];
-    // }
     // mandar numero operacion
     ret = sendMessage(sd, "1", sizeof(char));
     if (ret == -1) {
@@ -147,13 +132,6 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
         perror("Error en clientSocket");
         return -1;
     }
-    // Rellenar la peticion
-    // sprintf(client_name, "%s%d", "/CLIENTE_", getpid());
-    // memset(&p, 0, sizeof(struct peticion));
-    // p.op = 2;
-    // strcpy(p.q_name, client_name);
-    // p.key = key;
-
     // mandar peticion al servidor
     // mandar numero operacion    
     ret = sendMessage(sd, "2", sizeof(char));
@@ -209,21 +187,12 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
         }
         V_value2[i] = strtold(c_valor2_value, &ending_char);
     }
-    
-    // copiar valores
-    // strcpy(value1, r.valor1);
-    // *N_value2 = r.N_value2;
-    // for (int i = 0; i<r.N_value2; i++){
-    //     V_value2[i] = r.valor2_value[i];
-    // }
     closeSocket(sd);
     return retorno;
 
 }
 
 int modify_value(int key, char *value1, int N_value2, double *V_value2){
-    // struct peticion p;
-    // struct respuesta r;
     char resp[MAX];
     int sd, ret;
     // comprobar errores
@@ -245,18 +214,6 @@ int modify_value(int key, char *value1, int N_value2, double *V_value2){
         perror("Error en clientSocket");
         return -1;
     }
-    // Rellenar la peticion
-    // sprintf(client_name, "%s%d", "/CLIENTE_", getpid());
-    // memset(&p, 0, sizeof(struct peticion));
-    // p.op = 3;
-    // strcpy(p.q_name, client_name);
-    // p.key = key;
-    // strcpy(p.valor1, value1);
-    // for (int i = 0; i < N_value2; i++){
-    //     p.valor2_value[i] = V_value2[i];
-    // }
-    // p.valor2_N = N_value2;
-
     // mandar numero operacion
     ret = sendMessage(sd, "3", sizeof(char));
     if (ret == -1) {
@@ -309,8 +266,6 @@ int modify_value(int key, char *value1, int N_value2, double *V_value2){
 
 }
 int delete_key(int key){
-    // struct peticion p;
-    // struct respuesta r;
     int sd, ret;
     char resp[MAX];
     // abrir socket
@@ -323,12 +278,6 @@ int delete_key(int key){
         perror("Error en clientSocket");
         return -1;
     }
-    // // Rellenar la peticion
-    // sprintf(client_name, "%s%d", "/CLIENTE_", getpid());
-    // memset(&p, 0, sizeof(struct peticion));
-    // p.op = 4;
-    // strcpy(p.q_name, client_name);
-    // p.key = key;
     // // mandar peticion al servidor
     // mandar numero operacion
     ret = sendMessage(sd, "4", sizeof(char));
@@ -356,8 +305,6 @@ int delete_key(int key){
 }
 
 int exist(int key){
-    // struct peticion p;
-    // struct respuesta r;
     int sd, ret;
     char resp[MAX];
     // abrir socket
@@ -371,12 +318,6 @@ int exist(int key){
         perror("Error en clientSocket");
         return -1;
     }
-    // // Rellenar la peticion
-    // sprintf(client_name, "%s%d", "/CLIENTE_", getpid());
-    // memset(&p, 0, sizeof(struct peticion));
-    // p.op = 5;
-    // strcpy(p.q_name, client_name);
-    // p.key = key;
     // mandar numero operacion
     ret = sendMessage(sd, "5", sizeof(char));
     if (ret == -1) {

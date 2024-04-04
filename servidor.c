@@ -110,12 +110,7 @@ int main (int argc, char *argv[]){
 }
 
 void * tratar_peticion (void* pp){
-    // struct peticion * p = pp;
-    // // Creamos la peticion local y la respuesta
-    // struct peticion p_local;
-    // struct respuesta resp;
-    // Adquirimos el mutex para copiar la peticion pasada por parametro
-    
+    // Adquirimos el mutex para copiar la peticion pasada por parametro 
     pthread_mutex_lock(&sync_mutex);
     // p_local = *p;
     char *ending_char;

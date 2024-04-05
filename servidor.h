@@ -8,11 +8,11 @@
 
 void * tratar_peticion(void *p);
 int s_init();
-int s_set_value();
-int s_get_value();
-int s_modify_value();
-int s_delete_key();
-int s_exist();
+int s_set_value(int sc_local);
+int s_get_value(int sc_local);
+int s_modify_value(int sc_local);
+int s_delete_key(int sc_local);
+int s_exist(int sc_local);
 int load();
 int write_back();
 void close_server();

@@ -73,25 +73,17 @@ int main (int argc, char *argv[]){
         perror("SERVER: Error en serverSocket");
         return 0;
     }
-    // variables recepcion mensajes
-    int ret;
-    char num_op[MAX];
     // Bucle infinito
     while (1) {
         // aceptar cliente
         sc = serverAccept(sd);
         if (sc < 0) {
             perror("Error en serverAccept");
-            continue ;
+            return -1;
         }
-        // recibir mensaje
-        ret = recvMessage(sc, num_op, sizeof(char));
-        if (ret < 0) {
-            perror("Error en recepcion");
-            return -1 ;
-        }
+        
         // crear hilo
-        if (pthread_create(&thid[contador], &attr, tratar_peticion, &num_op) != 0) {
+        if (pthread_create(&thid[contador], &attr, tratar_peticion, &sc) != 0) {
             perror("Error en servidor. Pthread_create");
             return -1;
         }
@@ -115,45 +107,55 @@ void * tratar_peticion (void* pp){
     // Adquirimos el mutex para copiar la peticion pasada por parametro 
     pthread_mutex_lock(&sync_mutex);
     // p_local = *p;
-    char *ending_char;
-    int num_op = strtol(pp, &ending_char, 10);
-    int resp;
+    int *sc_copy = pp;
+    int sc_local = *sc_copy;
+    // char *ending_char;
     sync_copied = true;
     pthread_cond_signal(&sync_cond);
     pthread_mutex_unlock(&sync_mutex);
-    
+    char num_op_str[MAX];
+    int resp;
+    // recibir mensaje de codigo de operacion
+    int ret = recvMessage(sc_local, num_op_str, sizeof(char));
+    if (ret < 0){
+        perror("Error en recepcion");
+        return NULL;
+    }
+    char *ending_char;
+    int num_op = strtol(num_op_str, &ending_char, 10);
+
     // En funcion de la operacion especificada en la peticion hacemos una u otra operacion
     switch (num_op){
     case 0:
         resp = s_init();
         break;
     case 1:
-        resp = s_set_value();
+        resp = s_set_value(sc_local);
         break;
     case 2:
-        resp = s_get_value();
+        resp = s_get_value(sc_local);
         break;
     case 3:
-        resp = s_modify_value();
+        resp = s_modify_value(sc_local);
         break;
     case 4:
-        resp = s_delete_key();
+        resp = s_delete_key(sc_local);
         break;
     case 5:
-        resp = s_exist();
+        resp = s_exist(sc_local);
         break;
     }
     // devolvemos la respuesta solo si no es get value
     char resp_str[MAX];
     sprintf(resp_str, "%d", resp);
     if (resp != 2){
-        int ret = sendMessage(sc, resp_str, sizeof(char) * MAX);
+        int ret = sendMessage(sc_local, resp_str, sizeof(char) * MAX);
         if (ret == -1) {
             perror("Error en envio");
             exit(-1);
         }
     }  
-    closeSocket(sc);
+    closeSocket(sc_local);
     return NULL;
 }
 
@@ -170,7 +172,7 @@ int s_init() {
     return 0;
 }
 
-int s_set_value() {
+int s_set_value(int sc_local){
     // bloquear el mutex
     pthread_mutex_lock(&almacen_mutex);
     // conseguir elementos
@@ -180,22 +182,24 @@ int s_set_value() {
     char c_valor2_N[MAX];
     char c_valor2_value[MAX_VECTOR];
     // recibir key
-    ret = recvMessage(sc, c_key, sizeof(char)*MAX);
+    ret = recvMessage(sc_local, c_key, sizeof(char) * MAX);
     if (ret == -1) {
-        perror("Error en recibo");
+        perror("Error en recibo 1");
+        pthread_mutex_unlock(&almacen_mutex);
         return -1;
     }
    
     // recibir value1
-    ret = recvMessage(sc, valor1, sizeof(char) * MAX);
+    ret = recvMessage(sc_local, valor1, sizeof(char) * MAX);
     if (ret == -1) {
-        perror("Error en recibo");
+        perror("Error en recibo 2");
+        pthread_mutex_unlock(&almacen_mutex);
         return -1;
     }
     // recibir N_value2
-    ret = recvMessage(sc, c_valor2_N, sizeof(char)*MAX);
+    ret = recvMessage(sc_local, c_valor2_N, sizeof(char) * MAX);
     if (ret == -1) {
-        perror("Error en recibo");
+        perror("Error en recibo 3");
         pthread_mutex_unlock(&almacen_mutex);
         return -1;
     }
@@ -208,9 +212,9 @@ int s_set_value() {
     // recibir V_value2
     double valor2_value[MAX_VECTOR];
     for (int i = 0; i < valor2_N; i++){
-        ret = recvMessage(sc, c_valor2_value, sizeof(char) * MAX);
+        ret = recvMessage(sc_local, c_valor2_value, sizeof(char) * MAX);
         if (ret == -1){
-            perror("Error en recibo");
+            perror("Error en recibo 4");
             pthread_mutex_unlock(&almacen_mutex);
             return -1;
         }
@@ -251,7 +255,7 @@ int s_set_value() {
     return 0;
 }
 
-int s_get_value(){
+int s_get_value(int sc_local){
     // iterar por el almacen
     pthread_mutex_lock(&almacen_mutex);
     
@@ -262,9 +266,9 @@ int s_get_value(){
     int valor2_N;
     double valor2_value[MAX_VECTOR];
     // recibir key
-    ret = recvMessage(sc, c_key, sizeof(char)*MAX);
+    ret = recvMessage(sc_local, c_key, sizeof(char) * MAX);
     if (ret == -1) {
-        perror("Error en recibo");
+        perror("Error en recibo 1");
         pthread_mutex_unlock(&almacen_mutex);
         return -1;
     }
@@ -272,7 +276,7 @@ int s_get_value(){
     // key
     char *ending_char;
     int key = strtol(c_key, &ending_char, 10);
-    
+    // iterar por almacen
     int existe = -1;
     for (int i = 0; i < n_elementos; i++){
         if (almacen[i].clave == key){
@@ -287,25 +291,27 @@ int s_get_value(){
     }
     char resp_str[MAX];
     sprintf(resp_str, "%d", existe);
-    ret = sendMessage(sc, resp_str, sizeof(char) * MAX);
+    ret = sendMessage(sc_local, resp_str, sizeof(char) * MAX);
     if (ret == -1) {
-        perror("Error en envio");
+        perror("Error en envio 1");
+        pthread_mutex_unlock(&almacen_mutex);
+        return -1;
     }
     if (existe != -1){
         // enviar elementos
         // mandar value1
-        ret = sendMessage(sc, valor1, sizeof(char)*MAX);
+        ret = sendMessage(sc_local, valor1, sizeof(char) * MAX);
         if (ret == -1) {
+            perror("Error en envio 2");
             pthread_mutex_unlock(&almacen_mutex);
-            perror("Error en envio");
             return -1;
         }
         // mandar N_value2
         char c_N_value2[MAX];
         sprintf(c_N_value2, "%d", valor2_N);
-        ret = sendMessage(sc, c_N_value2, sizeof(char)*MAX);
+        ret = sendMessage(sc_local, c_N_value2, sizeof(char) * MAX);
         if (ret == -1) {
-            perror("Error en envio");
+            perror("Error en envio 3");
             pthread_mutex_unlock(&almacen_mutex);
             return -1;
         }
@@ -313,10 +319,10 @@ int s_get_value(){
         for (int i = 0; i< valor2_N; i++){
             char vector_string[MAX];
             snprintf(vector_string, MAX, "%f", valor2_value[i]);
-            ret = sendMessage(sc, vector_string, sizeof(char) * MAX);
+            ret = sendMessage(sc_local, vector_string, sizeof(char) * MAX);
             if (ret == -1){
-                perror("Error en envio");
-                // pthread_mutex_unlock(&almacen_mutex);
+                perror("Error en envio 4");
+                pthread_mutex_unlock(&almacen_mutex);
                 return -1;
             }
         }
@@ -328,7 +334,7 @@ int s_get_value(){
     return existe;
 }
 
-int s_modify_value() {
+int s_modify_value(int sc_local){
     pthread_mutex_lock(&almacen_mutex);
     // conseguir elementos
     int ret;
@@ -337,24 +343,24 @@ int s_modify_value() {
     char c_valor2_N[MAX];
     char c_valor2_value[MAX_VECTOR];
     // recibir key
-    ret = recvMessage(sc, c_key, sizeof(char)*MAX);
+    ret = recvMessage(sc_local, c_key, sizeof(char) * MAX);
     if (ret == -1) {
-        perror("Error en recibo");
+        perror("Error en recibo 1");
         pthread_mutex_unlock(&almacen_mutex);
         return -1;
     }
    
     // recibir value1
-    ret = recvMessage(sc, valor1, sizeof(char) * MAX);
+    ret = recvMessage(sc_local, valor1, sizeof(char) * MAX);
     if (ret == -1) {
-        perror("Error en recibo");
+        perror("Error en recibo 2");
         pthread_mutex_unlock(&almacen_mutex);
         return -1;
     }
     // recibir N_value2
-    ret = recvMessage(sc, c_valor2_N, sizeof(char));
+    ret = recvMessage(sc_local, c_valor2_N, sizeof(char));
     if (ret == -1) {
-        perror("Error en recibo");
+        perror("Error en recibo 3");
         pthread_mutex_unlock(&almacen_mutex);
         return -1;
     }
@@ -367,9 +373,9 @@ int s_modify_value() {
     // recibir V_value2
     double valor2_value[MAX_VECTOR];
     for (int i = 0; i < valor2_N; i++){
-        ret = recvMessage(sc, c_valor2_value, sizeof(char) * MAX);
+        ret = recvMessage(sc_local, c_valor2_value, sizeof(char) * MAX);
         if (ret == -1){
-            perror("Error en recibo");
+            perror("Error en recibo 4");
             pthread_mutex_unlock(&almacen_mutex);
             return -1;
         }
@@ -395,15 +401,15 @@ int s_modify_value() {
     return existe;
 }
 
-int s_delete_key() {
+int s_delete_key(int sc_local) {
     pthread_mutex_lock(&almacen_mutex);
     // conseguir elementos
     int ret;
     char c_key[MAX];
     // recibir key
-    ret = recvMessage(sc, c_key, sizeof(char)*MAX);
+    ret = recvMessage(sc_local, c_key, sizeof(char) * MAX);
     if (ret == -1) {
-        perror("Error en recibo");
+        perror("Error en recibo 1");
         pthread_mutex_unlock(&almacen_mutex);
         return -1;
     }
@@ -432,15 +438,15 @@ int s_delete_key() {
     return existe;
 }
 
-int s_exist() {
+int s_exist(int sc_local) {
     pthread_mutex_lock(&almacen_mutex);
     // conseguir elementos
     int ret;
     char c_key[MAX];
     // recibir key
-    ret = recvMessage(sc, c_key, sizeof(char)*MAX);
+    ret = recvMessage(sc_local, c_key, sizeof(char) * MAX);
     if (ret == -1) {
-        perror("Error en recibo");
+        perror("Error en recibo 2");
         pthread_mutex_unlock(&almacen_mutex);
         return -1;
     }

@@ -81,13 +81,13 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
     // mandar key
     char c_key[MAX];
     sprintf(c_key, "%d", key);
-    ret = sendMessage(sd, c_key, sizeof(char)*MAX);
+    ret = sendMessage(sd, c_key, sizeof(c_key));
     if (ret == -1) {
         perror("Error en envio");
         return -1;
     }
     // mandar value1
-    ret = sendMessage(sd, value1, sizeof(char)*MAX);
+    ret = sendMessage(sd, value1, sizeof(value1));
     if (ret == -1) {
         perror("Error en envio");
         return -1;
@@ -95,7 +95,7 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
     // mandar N_value2
     char c_N_value2[MAX];
     sprintf(c_N_value2, "%d", N_value2);
-    ret = sendMessage(sd, c_N_value2, sizeof(char)*MAX);
+    ret = sendMessage(sd, c_N_value2, sizeof(N_value2));
     if (ret == -1) {
         perror("Error en envio");
         return -1;
@@ -105,9 +105,8 @@ int set_value(int key, char *value1, int N_value2, double *V_value2){
     for (int i = 0; i< N_value2; i++){
         char vector_string[MAX];
         snprintf(vector_string, MAX, "%f", V_value2[i]);
-        ret = sendMessage(sd, vector_string, sizeof(char) * MAX);
-        if (ret == -1)
-        {
+        ret = sendMessage(sd, vector_string, sizeof(vector_string));
+        if (ret == -1){
             perror("Error en envio");
             return -1;
         }
@@ -154,7 +153,7 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2){
     // mandar key
     char c_key[MAX];
     sprintf(c_key, "%d", key);
-    ret = sendMessage(sd, c_key, sizeof(char)*MAX);
+    ret = sendMessage(sd, c_key, sizeof(c_key));
     if (ret == -1) {
         perror("Error en envio");
         return -1;
@@ -239,13 +238,13 @@ int modify_value(int key, char *value1, int N_value2, double *V_value2){
     // mandar key
     char c_key[MAX];
     sprintf(c_key, "%d", key);
-    ret = sendMessage(sd, c_key, sizeof(char)*MAX);
+    ret = sendMessage(sd, c_key, sizeof(c_key));
     if (ret == -1) {
         perror("Error en envio");
         return -1;
     }
     // mandar value1
-    ret = sendMessage(sd, value1, sizeof(char)*MAX);
+    ret = sendMessage(sd, value1, sizeof(value1));
     if (ret == -1) {
         perror("Error en envio");
         return -1;
@@ -253,7 +252,7 @@ int modify_value(int key, char *value1, int N_value2, double *V_value2){
     // mandar N_value2
     char c_N_value2[MAX];
     sprintf(c_N_value2, "%d", N_value2);
-    ret = sendMessage(sd, c_N_value2, sizeof(char)*MAX);
+    ret = sendMessage(sd, c_N_value2, sizeof(c_N_value2));
     if (ret == -1) {
         perror("Error en envio");
         return -1;
@@ -263,7 +262,7 @@ int modify_value(int key, char *value1, int N_value2, double *V_value2){
     for (int i = 0; i< N_value2; i++){
         char vector_string[MAX];
         snprintf(vector_string, MAX, "%f", V_value2[i]);
-        ret = sendMessage(sd, vector_string, sizeof(char) * MAX);
+        ret = sendMessage(sd, vector_string, sizeof(vector_string));
         if (ret == -1)
         {
             perror("Error en envio");
@@ -308,7 +307,7 @@ int delete_key(int key){
     // mandar key
     char c_key[MAX];
     sprintf(c_key, "%d", key);
-    ret = sendMessage(sd, c_key, sizeof(char)*MAX);
+    ret = sendMessage(sd, c_key, sizeof(c_key));
     if (ret == -1) {
         perror("Error en envio");
         return -1;
@@ -351,7 +350,7 @@ int exist(int key){
     // mandar key
     char c_key[MAX];
     sprintf(c_key, "%d", key);
-    ret = sendMessage(sd, c_key, sizeof(char)*MAX);
+    ret = sendMessage(sd, c_key, sizeof(c_key));
     if (ret == -1) {
         perror("Error en envio");
         return -1;

@@ -102,8 +102,6 @@ int main (int argc, char *argv[]){
 }
 
 void * tratar_peticion (void* pp){
-    //TODO: tal vez se puede borrar este mutex porque solo es lectura
-    // TODO: resolver problema de concurrencia con clientes en background
     // Adquirimos el mutex para copiar la peticion pasada por parametro 
     pthread_mutex_lock(&sync_mutex);
     // p_local = *p;
